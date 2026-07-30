@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>一次 macOS 无法关机排障：孤儿 Playwright/Chrome 进程与生命周期修复</title>
+  <meta name="description" content="从注销日志、崩溃报告和进程树出发，定位阻塞 macOS 关机的孤儿 Playwright/Chrome 进程，并用有界关闭与故障注入完成修复。">
+  <meta name="theme-color" content="#f4f1e9">
+  <link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml">
+  <link rel="canonical" href="https://shilong-cn.github.io/posts/macos-shutdown-playwright-chrome/">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="一次 macOS 无法关机排障：孤儿 Playwright/Chrome 进程与生命周期修复">
+  <meta property="og:description" content="区分浏览器崩溃与仍在存活的关机阻塞进程，再用可复现的故障注入验证生命周期修复。">
+  <meta property="og:url" content="https://shilong-cn.github.io/posts/macos-shutdown-playwright-chrome/">
+  <meta property="og:image" content="https://shilong-cn.github.io/assets/macos-shutdown-playwright-chrome.png">
+  <meta property="og:image:width" content="1672">
+  <meta property="og:image:height" content="941">
+  <meta property="og:image:alt" content="一条进程流被孤立节点中断后重新连接的抽象插画">
+  <meta property="article:published_time" content="2026-07-30">
+  <meta property="article:author" content="ShiLong">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:image" content="https://shilong-cn.github.io/assets/macos-shutdown-playwright-chrome.png">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    "headline": "一次 macOS 无法关机排障：孤儿 Playwright/Chrome 进程与生命周期修复",
+    "description": "从注销日志、崩溃报告和进程树出发，定位阻塞 macOS 关机的孤儿 Playwright/Chrome 进程，并用有界关闭与故障注入完成修复。",
+    "datePublished": "2026-07-30",
+    "dateModified": "2026-07-30",
+    "author": {
+      "@type": "Person",
+      "name": "ShiLong",
+      "url": "https://github.com/ShiLong-CN"
+    },
+    "mainEntityOfPage": "https://shilong-cn.github.io/posts/macos-shutdown-playwright-chrome/"
+  }
+  </script>
+</head>
+<body>
+  <a class="skip-link" href="#article">跳到正文</a>
+  <header class="site-header">
+    <a class="brand" href="../../">ShiLong · Field Notes</a>
+    <nav class="site-nav" aria-label="主导航">
+      <a href="../../">首页</a>
+      <a href="https://github.com/ShiLong-CN" rel="me">GitHub</a>
+    </nav>
+  </header>
+
+  <main id="article" class="article-shell">
+    <article>
+      <header class="article-header">
+        <p class="eyebrow">macOS · Playwright · Incident review</p>
+        <h1>一次 macOS 无法关机排障：孤儿 Playwright/Chrome 进程与生命周期修复</h1>
+        <p class="article-deck">Chrome 的崩溃报告很多，但真正挡住关机的不是一次崩溃，而是一棵收到退出事件后仍未结束、已经失去父进程的自动化浏览器进程树。</p>
+        <div class="article-meta">
+          <span>ShiLong</span>
+          <time datetime="2026-07-30">2026-07-30</time>
+          <span>约 10 分钟阅读</span>
+        </div>
+      </header>
+
+      <figure class="article-cover">
+        <img src="../../assets/macos-shutdown-playwright-chrome.png" width="1672" height="941" alt="一条进程流被孤立节点中断，随后重新接回稳定路径的抽象插画" fetchpriority="high">
+        <figcaption>问题不在某一个进程号，而在失去所有者的浏览器生命周期。</figcaption>
+      </figure>
+
+      <div class="article-body">
+        <aside class="summary-box" aria-label="结论摘要">
+          <strong>结论先行</strong>
+          macOS 的注销日志明确显示，系统在等待一个由 Playwright 启动的无头 Chrome。它确认收到了退出事件，却没有真正退出。精确清理 5 组自动化浏览器进程后，真实关机与重启均成功；随后把浏览器所有权、关闭超时、信号处理和定向兜底写进测试辅助层，并通过正常路径与故障注入验证零残留。
+        </aside>
+
+        <div class="evidence-grid" aria-label="关键数字">
+          <div class="metric"><b>5</b><span>组失去原父进程的自动化浏览器</span></div>
+          <div class="metric"><b>25</b><span>个浏览器主进程与辅助进程</span></div>
+          <div class="metric"><b>45</b><span>份数日内累计的 Chrome 系列崩溃报告</span></div>
+        </div>
+
+        <h2 id="symptom">现象：关机卡住，Chrome 又频繁报错</h2>
+
+        <p>最初看到的表象很像“Chrome 崩溃导致 macOS 无法关机”：点击关机后系统迟迟不结束，同时系统里又留有多份 Chrome、Chrome for Testing 和无头 Chromium 的诊断报告。</p>
+
+        <p>但这两件事不能直接画等号。判断关机阻塞，要看注销状态机当时在等谁；判断崩溃，要看诊断报告里的实际事件时间与调用栈。把两类证据分开后，问题才变得清楚。</p>
+
+        <div class="table-wrap" role="region" aria-label="关键证据表" tabindex="0">
+          <table>
+            <caption>关键证据与它能支持的结论</caption>
+            <thead>
+              <tr>
+                <th scope="col">证据</th>
+                <th scope="col">观察</th>
+                <th scope="col">能支持的结论</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>进程树与完整命令行</td>
+                <td>5 组自动化浏览器共 25 个进程，主进程的原父进程均已消失，使用独立临时 profile</td>
+                <td>它们是遗留的自动化会话，不是日常 Chrome 标签页</td>
+              </tr>
+              <tr>
+                <td>macOS 注销日志</td>
+                <td>同一个无头 Chrome 收到退出事件并回复，但随后仍处于运行状态；多轮关机都在等待它</td>
+                <td>这是本次关机失败的直接近因</td>
+              </tr>
+              <tr>
+                <td>诊断报告</td>
+                <td>数日内共 45 份：多数在应用注册阶段中止，少数为无头浏览器陷阱</td>
+                <td>浏览器自动化存在稳定性问题，但不能证明它直接触发了关机阻塞</td>
+              </tr>
+              <tr>
+                <td>日常 Chrome profile</td>
+                <td>退出状态正常，没有正式 profile 锁损坏或 Helper 崩溃证据</td>
+                <td>没有理由清理或重置用户的日常浏览数据</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <aside class="boundary-box" aria-label="因果边界">
+          <strong>关键边界</strong>
+          关机阻塞窗口内没有新的 Chrome 崩溃。45 份报告说明存在相关稳定性症状；真正被注销日志直接点名的阻塞者，却是一个仍然活着的孤儿进程。报告文件的修改时间也不等于崩溃发生时间，至少有一份旧报告在两天后才被更新。
+        </aside>
+
+        <h2 id="chain">根因链：启动成功，不代表生命周期完整</h2>
+
+        <p>还原命令行与调用关系后，可以得到一条有证据支撑的故障链：</p>
+
+        <ol>
+          <li>一次本地 UI 自动化任务直接启动了系统安装的 Google Chrome，并为它创建临时 Playwright profile。</li>
+          <li>上层 Node 进程在异常或挂起路径中退出，没有完成浏览器关闭，也没有留下仍能负责回收的所有者。</li>
+          <li>浏览器主进程被系统接管，连同辅助进程持续存活超过两天。</li>
+          <li>macOS 关机时向它发送退出事件；进程回复了系统，却没有结束。</li>
+          <li>注销状态机持续等待，因此用户看到的是“关机指令没有执行完”。</li>
+        </ol>
+
+        <p>这里最值得修的不是某一个进程号，而是<strong>所有权丢失</strong>：谁启动浏览器，谁必须能在正常结束、抛错、收到信号、整体超时和优雅关闭卡住时把它回收。</p>
+
+        <p>另一个风险是把自动化指向日常使用的 Chrome。Playwright 官方文档也提醒：它与随包提供的浏览器配合最好，替换 <code>executablePath</code> 应当格外谨慎；自动化默认 Chrome profile 也不受支持。这个原则与本次事故的隔离需求一致。</p>
+
+        <h2 id="cleanup">处置：只清理已证实的进程树</h2>
+
+        <p>现场清理没有使用 <code>killall Chrome</code> 或模糊的 <code>pkill -f</code>。目标通过三项条件共同确认：自动化启动参数、Playwright 临时 profile、以及完整的父子进程树。先对 5 个主进程发送正常终止信号；确认它们没有退出后，才对这 5 棵已知进程树做定向强制终止。</p>
+
+        <p>结果是 25 个相关进程全部消失，日常 Chrome 与正式 profile 未被修改。LaunchServices 不再保留对应的活跃登记，随后一次真实关机走过 <code>LogoutComplete</code> 并进入系统 shutdown 状态机；机器重启后也没有恢复这些残留进程。</p>
+
+        <h2 id="fix">永久修复：有界关闭、明确信号、零残留验收</h2>
+
+        <p>修复只落在 UI 测试的浏览器启动与关闭边界，没有改产品核心逻辑，也没有改依赖清单。测试辅助层采用 Playwright 管理的浏览器，并拒绝把配置指向日常 Google Chrome 应用。</p>
+
+        <h3>1. 保留一个可强制回收的公开句柄</h3>
+
+        <p>普通 <code>chromium.launch()</code> 返回浏览器对象；这里改用 <code>launchServer()</code>，同时持有 <code>BrowserServer</code> 与它的进程句柄。这样即使协议层关闭卡住，调用方仍可通过 Playwright 的公开 API 定向终止这一会话。</p>
+
+        <pre tabindex="0" aria-label="简化后的 Playwright 生命周期代码"><code>const server = await chromium.launchServer({
+  headless: true,
+  host: '127.0.0.1',
+  handleSIGHUP: false,
+  handleSIGINT: false,
+  handleSIGTERM: false,
+});
+
+const browser = await chromium.connect(server.wsEndpoint(), {
+  timeout: 30_000,
+});
+
+try {
+  await runUiChecks(browser);
+} finally {
+  const closed = await settleWithin(server.close(), 5_000);
+  if (!closed &amp;&amp; server.process()) {
+    await server.kill();
+  }
+}</code></pre>
+
+        <p>这段代码是公开文章用的简化版。实际实现还保证关闭操作幂等，并在连接失败时走同一条清理路径。<code>server.kill()</code> 只作用于当前 <code>BrowserServer</code>，不会按进程名误伤其他 Chrome。</p>
+
+        <h3>2. 让调用方统一拥有信号与总超时</h3>
+
+        <p>浏览器库的默认信号处理被关闭，由测试辅助层统一接管 <code>SIGHUP</code>、<code>SIGINT</code> 与 <code>SIGTERM</code>。每种信号都先触发有界清理，再保留标准退出码。整次 UI 任务另有 30 分钟上限，超时后返回 124，并走同样的定向回收。</p>
+
+        <h3>3. 将“零残留”写进完成条件</h3>
+
+        <p>测试成功并不只看断言是否通过。验收还包括：没有带本次运行标记的浏览器进程、没有临时 profile 被继续占用、没有 LaunchServices 活跃登记，也没有新增的相关诊断报告。</p>
+
+        <div class="table-wrap" role="region" aria-label="修复验证矩阵" tabindex="0">
+          <table>
+            <caption>实际执行的验证矩阵</caption>
+            <thead>
+              <tr>
+                <th scope="col">场景</th>
+                <th scope="col">结果</th>
+                <th scope="col">主要判据</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>项目回归检查</td>
+                <td>通过</td>
+                <td>115 项通过、1 项按预期跳过；核心文件摘要未变化</td>
+              </tr>
+              <tr>
+                <td>正常完成</td>
+                <td>通过</td>
+                <td>浏览器正常退出，进程与系统登记均无残留</td>
+              </tr>
+              <tr>
+                <td>优雅关闭被故意挂起</td>
+                <td>通过</td>
+                <td>测试超时触发后只强制终止当前 BrowserServer</td>
+              </tr>
+              <tr>
+                <td>收到 SIGTERM</td>
+                <td>通过</td>
+                <td>退出码为 143，浏览器进程零残留</td>
+              </tr>
+              <tr>
+                <td>整体任务超时</td>
+                <td>通过</td>
+                <td>退出码为 124，浏览器进程零残留</td>
+              </tr>
+              <tr>
+                <td>隔离数据的 UI smoke</td>
+                <td>通过</td>
+                <td>代表性断言全部成立，浏览器、服务与端口均无残留</td>
+              </tr>
+              <tr>
+                <td>真实关机与重启</td>
+                <td>通过</td>
+                <td>关机状态机完成；重启后未恢复旧进程，未新增相关崩溃报告</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h2 id="limits">还不能下什么结论</h2>
+
+        <p>这次证据足以确认“哪个进程直接挡住了关机”以及“生命周期修复能否避免残留”，但仍不足以把底层责任归给某一个组件：</p>
+
+        <ul>
+          <li>尚不能确定最初是哪一个异常路径首先遗失了浏览器所有权。</li>
+          <li>尚不能证明问题根在 Playwright、Chromium、调用方清理逻辑，还是它们与 macOS 应用注册机制的交互。</li>
+          <li>此前的 45 次崩溃与两天后仍存活的孤儿进程可能相关，但没有证据证明它们来自同一个底层缺陷。</li>
+          <li>一次受限执行环境内的浏览器探针因 Mach 端口权限产生了额外陷阱；同一探针在正常桌面环境通过，因此它被单独归类为环境边界问题。</li>
+        </ul>
+
+        <p>修复范围只覆盖涉事本地项目的 UI 测试辅助层；它不代表上游 Playwright 或所有其他自动化调用方已经修复。</p>
+
+        <h2 id="checklist">下次遇到类似问题，我会先做这五步</h2>
+
+        <ol>
+          <li><strong>先看注销日志。</strong>确认系统在等待哪个应用，而不是根据弹窗猜根因。</li>
+          <li><strong>再看进程所有权。</strong>核对父进程、启动时间、命令行与临时 profile，区分日常浏览器和自动化会话。</li>
+          <li><strong>把崩溃报告按事件时间归档。</strong>文件修改时间只能说明文件被写过，不能代表故障刚发生。</li>
+          <li><strong>精确终止。</strong>只处理已确认的自动化进程树，先正常终止，再在有证据时定向强制终止。</li>
+          <li><strong>以真实关机收尾。</strong>进程数归零只是中间结果；最终要看到 logout、shutdown、重新启动和无残留回归。</li>
+        </ol>
+
+        <p>最重要的工程教训很简单：<strong>自动化任务的“完成”必须包括它启动的外部进程已经被回收。</strong>只要浏览器生命周期仍是无限等待，测试断言全部通过也不能算真正结束。</p>
+
+        <h2 id="references">参考资料</h2>
+
+        <ul>
+          <li><a href="https://playwright.dev/docs/api/class-browsertype">Playwright BrowserType API</a>：浏览器启动、连接、信号与 executablePath 的官方说明。</li>
+          <li><a href="https://playwright.dev/docs/api/class-browserserver">Playwright BrowserServer API</a>：<code>process()</code>、<code>close()</code> 与 <code>kill()</code> 的公开接口。</li>
+        </ul>
+      </div>
+
+      <nav class="article-nav" aria-label="文章导航">
+        <a href="../../">← 返回所有文章</a>
+      </nav>
+    </article>
+  </main>
+
+  <footer class="site-footer">
+    <p>© 2026 ShiLong. Evidence first.</p>
+    <p><a href="https://github.com/ShiLong-CN">github.com/ShiLong-CN</a></p>
+  </footer>
+</body>
+</html>
