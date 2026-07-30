@@ -6,6 +6,21 @@
   <title>一次 macOS 无法关机排障：孤儿 Playwright/Chrome 进程与生命周期修复</title>
   <meta name="description" content="从注销日志、崩溃报告和进程树出发，定位阻塞 macOS 关机的孤儿 Playwright/Chrome 进程，并用有界关闭与故障注入完成修复。">
   <meta name="theme-color" content="#ffffff">
+  <script>
+    (() => {
+      const root = document.documentElement;
+      let choice = 'system';
+      try {
+        const stored = localStorage.getItem('shilong-theme');
+        if (stored === 'system' || stored === 'light' || stored === 'dark') choice = stored;
+      } catch {}
+      root.dataset.themeChoice = choice;
+      if (choice === 'light' || choice === 'dark') root.dataset.theme = choice;
+      const dark = choice === 'dark' || (choice === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
+      root.style.colorScheme = dark ? 'dark' : 'light';
+      document.querySelector('meta[name="theme-color"]').content = dark ? '#0d1117' : '#ffffff';
+    })();
+  </script>
   <link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml">
   <link rel="canonical" href="https://shilong-cn.github.io/posts/macos-shutdown-playwright-chrome/">
   <meta property="og:type" content="article">
@@ -37,15 +52,23 @@
     "mainEntityOfPage": "https://shilong-cn.github.io/posts/macos-shutdown-playwright-chrome/"
   }
   </script>
+  <script src="../../assets/theme.js" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#article">跳到正文</a>
   <header class="site-header">
     <a class="brand" href="../../">ShiLong Li</a>
-    <nav class="site-nav" aria-label="主导航">
-      <a href="../../">首页</a>
-      <a href="https://github.com/ShiLong-CN" rel="me">GitHub</a>
-    </nav>
+    <div class="header-actions">
+      <nav class="site-nav" aria-label="主导航">
+        <a href="../../">首页</a>
+        <a href="https://github.com/ShiLong-CN" rel="me">GitHub</a>
+      </nav>
+      <div class="theme-switcher" role="group" aria-label="显示主题">
+        <button type="button" data-theme-value="system" aria-pressed="true">自动</button>
+        <button type="button" data-theme-value="light" aria-pressed="false">浅色</button>
+        <button type="button" data-theme-value="dark" aria-pressed="false">深色</button>
+      </div>
+    </div>
   </header>
 
   <main id="article" class="article-shell">

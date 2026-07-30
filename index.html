@@ -6,6 +6,21 @@
   <title>ShiLong Li · Technical Notes</title>
   <meta name="description" content="关于 AI 系统、研究工具与工程排障的可复现技术笔记。">
   <meta name="theme-color" content="#ffffff">
+  <script>
+    (() => {
+      const root = document.documentElement;
+      let choice = 'system';
+      try {
+        const stored = localStorage.getItem('shilong-theme');
+        if (stored === 'system' || stored === 'light' || stored === 'dark') choice = stored;
+      } catch {}
+      root.dataset.themeChoice = choice;
+      if (choice === 'light' || choice === 'dark') root.dataset.theme = choice;
+      const dark = choice === 'dark' || (choice === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
+      root.style.colorScheme = dark ? 'dark' : 'light';
+      document.querySelector('meta[name="theme-color"]').content = dark ? '#0d1117' : '#ffffff';
+    })();
+  </script>
   <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml">
   <link rel="canonical" href="https://shilong-cn.github.io/">
   <meta property="og:type" content="website">
@@ -19,15 +34,23 @@
   <meta name="twitter:card" content="summary">
   <meta name="twitter:image" content="https://shilong-cn.github.io/assets/macos-shutdown-playwright-chrome.png">
   <link rel="stylesheet" href="./assets/styles.css">
+  <script src="./assets/theme.js" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#main">跳到正文</a>
   <header class="site-header">
     <a class="brand" href="./" aria-current="page">ShiLong Li</a>
-    <nav class="site-nav" aria-label="主导航">
-      <a href="#articles">文章</a>
-      <a href="https://github.com/ShiLong-CN" rel="me">GitHub</a>
-    </nav>
+    <div class="header-actions">
+      <nav class="site-nav" aria-label="主导航">
+        <a href="#articles">文章</a>
+        <a href="https://github.com/ShiLong-CN" rel="me">GitHub</a>
+      </nav>
+      <div class="theme-switcher" role="group" aria-label="显示主题">
+        <button type="button" data-theme-value="system" aria-pressed="true">自动</button>
+        <button type="button" data-theme-value="light" aria-pressed="false">浅色</button>
+        <button type="button" data-theme-value="dark" aria-pressed="false">深色</button>
+      </div>
+    </div>
   </header>
 
   <main id="main" class="shell">
