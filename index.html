@@ -3,13 +3,13 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ShiLong · Field Notes</title>
+  <title>ShiLong Li · Technical Notes</title>
   <meta name="description" content="关于 AI 系统、研究工具与工程排障的可复现技术笔记。">
-  <meta name="theme-color" content="#f4f1e9">
+  <meta name="theme-color" content="#ffffff">
   <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml">
   <link rel="canonical" href="https://shilong-cn.github.io/">
   <meta property="og:type" content="website">
-  <meta property="og:title" content="ShiLong · Field Notes">
+  <meta property="og:title" content="ShiLong Li · Technical Notes">
   <meta property="og:description" content="关于 AI 系统、研究工具与工程排障的可复现技术笔记。">
   <meta property="og:url" content="https://shilong-cn.github.io/">
   <meta property="og:image" content="https://shilong-cn.github.io/assets/macos-shutdown-playwright-chrome.png">
@@ -23,7 +23,7 @@
 <body>
   <a class="skip-link" href="#main">跳到正文</a>
   <header class="site-header">
-    <a class="brand" href="./" aria-current="page">ShiLong · Field Notes</a>
+    <a class="brand" href="./" aria-current="page">ShiLong Li</a>
     <nav class="site-nav" aria-label="主导航">
       <a href="#articles">文章</a>
       <a href="https://github.com/ShiLong-CN" rel="me">GitHub</a>
@@ -31,27 +31,33 @@
   </header>
 
   <main id="main" class="shell">
-    <section class="hero" aria-labelledby="site-title">
-      <p class="eyebrow">Engineering notes · 工程手记</p>
-      <h1 id="site-title">把偶发故障，写成可验证的结论。</h1>
-      <p class="hero-copy">记录 AI 系统、研究工具和本地工程实践。每篇文章尽量给出证据边界、失败路径与复现方法。</p>
+    <section class="intro" aria-labelledby="site-title">
+      <div class="profile">
+        <p class="eyebrow">Technical Notes</p>
+        <h1 id="site-title">ShiLong Li</h1>
+        <p class="profile-role">AI research · engineering systems · research tooling</p>
+      </div>
+      <div class="intro-copy">
+        <p>这里记录 AI 系统、研究工具和本地工程实践。</p>
+        <p>文章以证据为先，尽量说明事实边界、失败路径、修复方法和验证结果。</p>
+      </div>
     </section>
 
     <section id="articles" class="post-list" aria-labelledby="articles-title">
-      <h2 id="articles-title" class="section-label">Latest writing</h2>
+      <h2 id="articles-title" class="section-label">Technical Notes</h2>
       <article class="post-card">
+        <time class="post-date" datetime="2026-07-30">2026-07-30</time>
         <div>
           <p class="kicker">macOS · Playwright · Incident review</p>
-          <h2><a href="./posts/macos-shutdown-playwright-chrome/">一次 macOS 无法关机排障：孤儿 Playwright/Chrome 进程与生命周期修复</a></h2>
+          <h3><a href="./posts/macos-shutdown-playwright-chrome/">一次 macOS 无法关机排障：孤儿 Playwright/Chrome 进程与生命周期修复</a></h3>
           <p>从注销日志、崩溃报告和 PPID 1 出发，区分“浏览器崩溃”与“仍在存活的关机阻塞进程”，再用可复现的故障注入验证修复。</p>
         </div>
-        <time class="post-date" datetime="2026-07-30">2026-07-30</time>
       </article>
     </section>
   </main>
 
   <footer class="site-footer">
-    <p>© 2026 ShiLong. Evidence first.</p>
+    <p>© 2026 ShiLong Li</p>
     <p><a href="https://github.com/ShiLong-CN">github.com/ShiLong-CN</a></p>
   </footer>
 </body>
