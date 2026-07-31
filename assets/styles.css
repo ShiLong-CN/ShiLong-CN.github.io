@@ -6,8 +6,9 @@
 :root {
   color-scheme: light;
 
-  --paper: #fdfdfd;
-  --surface: #f3f3f1;
+  --page: #eeeeec;
+  --paper: #ffffff;
+  --surface: #f4f4f2;
   --ink: #1a1a1a;
   --ink-2: #565b60;
   --ink-3: #8a8f94;
@@ -17,9 +18,12 @@
   --ember: #c0410c;
   --selection: #dbe6f3;
 
-  /* The frame is wide; only running prose is capped, because a 1200px line of
-     17px Chinese is ~70 characters and the eye loses its place returning. */
+  /* Frame 1200 = card 876 + gap 24 + sidebar 300. Card padding 28 leaves an
+     820px measure, which is where cnblogs lands too (measured 818). */
   --frame: 1200px;
+  --side: 300px;
+  --gap: 24px;
+  --pad: 28px;
   --measure: 820px;
 
   --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
@@ -32,8 +36,9 @@
 :root[data-theme="dark"] {
   color-scheme: dark;
 
-  --paper: #0f1113;
-  --surface: #191c1f;
+  --page: #0b0d0f;
+  --paper: #131619;
+  --surface: #1c2024;
   --ink: #e6e6e3;
   --ink-2: #9aa0a6;
   --ink-3: #71777d;
@@ -48,8 +53,9 @@
   :root:not([data-theme]) {
     color-scheme: dark;
 
-    --paper: #0f1113;
-    --surface: #191c1f;
+    --page: #0b0d0f;
+    --paper: #131619;
+    --surface: #1c2024;
     --ink: #e6e6e3;
     --ink-2: #9aa0a6;
     --ink-3: #71777d;
@@ -68,7 +74,7 @@
 }
 
 html {
-  background: var(--paper);
+  background: var(--page);
   scroll-behavior: smooth;
 }
 
@@ -77,7 +83,7 @@ body {
   margin: 0;
   display: flex;
   flex-direction: column;
-  background: var(--paper);
+  background: var(--page);
   color: var(--ink);
   font-family: var(--sans);
   font-size: 16px;
@@ -216,12 +222,118 @@ a:hover {
 
 /* --- index -------------------------------------------------------------- */
 
-.shell {
-  margin-bottom: 64px;
+.shell,
+.article-shell {
+  margin-bottom: 40px;
+}
+
+/* --- card + sidebar ----------------------------------------------------- */
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--side);
+  gap: var(--gap);
+  align-items: start;
+  margin-top: 24px;
+}
+
+.card {
+  min-width: 0;
+  padding: var(--pad) var(--pad) 36px;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+}
+
+/* Bounded, or a sidebar taller than the viewport strands its last module. */
+.side-sticky {
+  position: sticky;
+  top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.side-mod {
+  padding: 16px 18px 18px;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  font-size: 13.5px;
+  line-height: 1.7;
+}
+
+.side-mod h2 {
+  margin: 0 0 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--rule);
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.side-mod p {
+  margin: 0 0 8px;
+  color: var(--ink-2);
+}
+
+.side-mod p:last-child {
+  margin-bottom: 0;
+}
+
+.side-mod ul,
+.side-mod ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.side-mod li {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 3px 0;
+  color: var(--ink-2);
+}
+
+.side-mod li .count {
+  color: var(--ink-3);
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+/* Sidebar table of contents: numbers come from the article's own order. */
+.side-toc ol {
+  counter-reset: toc;
+}
+
+.side-toc li {
+  display: list-item;
+  padding: 4px 0 4px 22px;
+  position: relative;
+  counter-increment: toc;
+}
+
+.side-toc li::before {
+  content: counter(toc);
+  position: absolute;
+  left: 0;
+  color: var(--ink-3);
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+.side-toc a {
+  color: var(--ink-2);
+}
+
+.side-toc a:hover {
+  color: var(--link);
 }
 
 .intro {
-  padding: 40px 0 34px;
+  padding: 0 0 26px;
   border-bottom: 1px solid var(--rule);
 }
 
@@ -328,7 +440,7 @@ a:hover {
 }
 
 .article-header {
-  padding: 44px 0 0;
+  padding: 0;
 }
 
 .article-header h1 {
@@ -394,58 +506,6 @@ a:hover {
   color: var(--ink-3);
   font-size: 13px;
   line-height: 1.6;
-}
-
-/* --- table of contents -------------------------------------------------- */
-
-.toc {
-  max-width: var(--measure);
-  margin: 34px 0 0;
-  padding: 14px 18px;
-  border: 1px solid var(--rule);
-  background: var(--surface);
-  font-size: 14.5px;
-}
-
-.toc summary {
-  color: var(--ink-2);
-  cursor: pointer;
-  font-size: 13px;
-  list-style: none;
-}
-
-.toc summary::-webkit-details-marker {
-  display: none;
-}
-
-.toc summary::before {
-  content: "▸";
-  display: inline-block;
-  margin-right: 8px;
-  color: var(--ink-3);
-  transition: transform 0.15s ease;
-}
-
-.toc[open] summary::before {
-  transform: rotate(90deg);
-}
-
-.toc ol {
-  margin: 12px 0 2px;
-  padding-left: 22px;
-  color: var(--ink-3);
-}
-
-.toc li {
-  margin-bottom: 5px;
-}
-
-.toc li:last-child {
-  margin-bottom: 0;
-}
-
-.toc a {
-  color: var(--ink-2);
 }
 
 /* --- article body ------------------------------------------------------- */
@@ -676,7 +736,7 @@ thead th {
 /* --- 404 ---------------------------------------------------------------- */
 
 .notice {
-  padding: 80px 0 110px;
+  padding: 40px 0 60px;
 }
 
 .notice h1 {
@@ -692,6 +752,17 @@ thead th {
 }
 
 /* --- responsive --------------------------------------------------------- */
+
+/* Sidebar drops below the article once the frame can no longer hold both. */
+@media (max-width: 1000px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .side-sticky {
+    position: static;
+  }
+}
 
 @media (max-width: 620px) {
   body {
@@ -748,9 +819,6 @@ thead th {
     scroll-behavior: auto;
   }
 
-  .toc summary::before {
-    transition: none;
-  }
 }
 
 @media print {
@@ -759,7 +827,7 @@ thead th {
   .article-nav,
   .skip-link,
   .theme-switcher,
-  .toc {
+  .sidebar {
     display: none;
   }
 

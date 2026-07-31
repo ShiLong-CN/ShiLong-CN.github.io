@@ -72,6 +72,8 @@
   </header>
 
   <main id="article" class="article-shell">
+    <div class="layout">
+    <div class="card">
     <article>
       <header class="article-header">
         <p class="eyebrow">Incident review</p>
@@ -89,19 +91,6 @@
           <figcaption>示意图：进程链在失去所有者后中断，孤立的那个节点仍然活着——这正是关机时系统在等的东西。</figcaption>
         </figure>
       </header>
-
-        <details class="toc">
-          <summary>本文目录</summary>
-          <ol>
-            <li><a href="#symptom">现象：关机卡住，Chrome 又频繁报错</a></li>
-            <li><a href="#chain">根因链：启动成功，不代表生命周期完整</a></li>
-            <li><a href="#cleanup">处置：只清理已证实的进程树</a></li>
-            <li><a href="#fix">永久修复：有界关闭、明确信号、零残留验收</a></li>
-            <li><a href="#limits">还不能下什么结论</a></li>
-            <li><a href="#checklist">下次遇到类似问题，我会先做这五步</a></li>
-            <li><a href="#references">参考资料</a></li>
-          </ol>
-        </details>
 
       <div class="article-body">
         <aside class="note" aria-label="结论摘要">
@@ -326,6 +315,55 @@ try {
         <a href="../../">← 返回全部笔记</a>
       </nav>
     </article>
+    </div>
+
+    <aside class="sidebar">
+      <div class="side-sticky">
+      <section class="side-mod">
+        <h2>关于</h2>
+        <p>ShiLong Li。写 AI 系统、研究工具与本地工程实践。</p>
+        <p>证据优先：每篇都写清事实边界、失败路径与验证结果。</p>
+      </section>
+
+      <nav class="side-mod side-toc" aria-label="本文目录">
+        <h2>本文目录</h2>
+        <ol>
+          <li><a href="#symptom">现象：关机卡住，Chrome 又频繁报错</a></li>
+          <li><a href="#chain">根因链：启动成功，不代表生命周期完整</a></li>
+          <li><a href="#cleanup">处置：只清理已证实的进程树</a></li>
+          <li><a href="#fix">永久修复：有界关闭、明确信号、零残留验收</a></li>
+          <li><a href="#limits">还不能下什么结论</a></li>
+          <li><a href="#checklist">下次遇到类似问题，我会先做这五步</a></li>
+          <li><a href="#references">参考资料</a></li>
+        </ol>
+      </nav>
+
+      <section class="side-mod">
+        <h2>分类</h2>
+        <ul>
+          <li><span>事故复盘</span><span class="count">1</span></li>
+          <li><span>macOS</span><span class="count">1</span></li>
+          <li><span>Playwright</span><span class="count">1</span></li>
+        </ul>
+      </section>
+
+      <section class="side-mod">
+        <h2>归档</h2>
+        <ul>
+          <li><span>2026 年 7 月</span><span class="count">1</span></li>
+        </ul>
+      </section>
+
+      <section class="side-mod">
+        <h2>常用链接</h2>
+        <ul>
+          <li><a href="https://github.com/ShiLong-CN">GitHub</a></li>
+          <li><a href="https://github.com/ShiLong-CN/ShiLong-CN.github.io">本站源码</a></li>
+        </ul>
+      </section>
+      </div>
+    </aside>
+    </div>
   </main>
 
   <footer class="site-footer">
