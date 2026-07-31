@@ -3,10 +3,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>页面未找到 · ShiLong Li</title>
-  <meta name="description" content="这个页面不存在或已经移动。">
+  <title>404 · 页面不存在 — ShiLong Li</title>
+  <meta name="description" content="这页笔记不存在，回到首页继续阅读。">
+  <meta name="theme-color" content="#f4f2ea">
   <meta name="robots" content="noindex">
-  <meta name="theme-color" content="#ffffff">
   <script>
     (() => {
       const root = document.documentElement;
@@ -18,8 +18,10 @@
       root.dataset.themeChoice = choice;
       if (choice === 'light' || choice === 'dark') root.dataset.theme = choice;
       const dark = choice === 'dark' || (choice === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
+      const reading = root.classList.contains('reading');
       root.style.colorScheme = dark ? 'dark' : 'light';
-      document.querySelector('meta[name="theme-color"]').content = dark ? '#0d1117' : '#ffffff';
+      document.querySelector('meta[name="theme-color"]').content =
+        dark ? (reading ? '#0e1013' : '#15171a') : (reading ? '#ffffff' : '#f4f2ea');
     })();
   </script>
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
@@ -29,7 +31,7 @@
 <body>
   <a class="skip-link" href="#main">跳到正文</a>
   <header class="site-header">
-    <a class="brand" href="/">ShiLong Li</a>
+    <a class="brand" href="/">ShiLong Li<span>技术笔记</span></a>
     <div class="header-actions">
       <nav class="site-nav" aria-label="主导航">
         <a href="/">首页</a>
@@ -44,11 +46,11 @@
   </header>
 
   <main id="main" class="shell">
-    <section class="hero" aria-labelledby="error-title">
+    <section class="notice" aria-labelledby="error-title">
       <p class="eyebrow">404 · Not found</p>
       <h1 id="error-title">这页笔记还不存在。</h1>
-      <p class="hero-copy">地址可能有误，或者文章已经移动。你可以回到首页继续阅读。</p>
-      <p><a href="/">← 返回首页</a></p>
+      <p>地址可能有误，或者文章已经移动。</p>
+      <p><a href="/">← 返回全部笔记</a></p>
     </section>
   </main>
 

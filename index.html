@@ -3,9 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ShiLong Li · Technical Notes</title>
+  <title>ShiLong Li · 技术笔记</title>
   <meta name="description" content="关于 AI 系统、研究工具与工程排障的可复现技术笔记。">
-  <meta name="theme-color" content="#ffffff">
+  <meta name="theme-color" content="#f4f2ea">
   <script>
     (() => {
       const root = document.documentElement;
@@ -17,14 +17,16 @@
       root.dataset.themeChoice = choice;
       if (choice === 'light' || choice === 'dark') root.dataset.theme = choice;
       const dark = choice === 'dark' || (choice === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
+      const reading = root.classList.contains('reading');
       root.style.colorScheme = dark ? 'dark' : 'light';
-      document.querySelector('meta[name="theme-color"]').content = dark ? '#0d1117' : '#ffffff';
+      document.querySelector('meta[name="theme-color"]').content =
+        dark ? (reading ? '#0e1013' : '#15171a') : (reading ? '#ffffff' : '#f4f2ea');
     })();
   </script>
   <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml">
   <link rel="canonical" href="https://shilong-cn.github.io/">
   <meta property="og:type" content="website">
-  <meta property="og:title" content="ShiLong Li · Technical Notes">
+  <meta property="og:title" content="ShiLong Li · 技术笔记">
   <meta property="og:description" content="关于 AI 系统、研究工具与工程排障的可复现技术笔记。">
   <meta property="og:url" content="https://shilong-cn.github.io/">
   <meta property="og:image" content="https://shilong-cn.github.io/assets/macos-shutdown-playwright-chrome.png">
@@ -37,12 +39,11 @@
   <script src="./assets/theme.js" defer></script>
 </head>
 <body>
-  <a class="skip-link" href="#main">跳到正文</a>
+  <a class="skip-link" href="#notes">跳到笔记列表</a>
   <header class="site-header">
-    <a class="brand" href="./" aria-current="page">ShiLong Li</a>
+    <a class="brand" href="./" aria-current="page">ShiLong Li<span>技术笔记</span></a>
     <div class="header-actions">
       <nav class="site-nav" aria-label="主导航">
-        <a href="#articles">文章</a>
         <a href="https://github.com/ShiLong-CN" rel="me">GitHub</a>
       </nav>
       <div class="theme-switcher" role="group" aria-label="显示主题">
@@ -53,30 +54,24 @@
     </div>
   </header>
 
-  <main id="main" class="shell">
-    <section class="intro" aria-labelledby="site-title">
-      <div class="profile">
-        <p class="eyebrow">Technical Notes</p>
-        <h1 id="site-title">ShiLong Li</h1>
-        <p class="profile-role">AI research · engineering systems · research tooling</p>
-      </div>
-      <div class="intro-copy">
-        <p>这里记录 AI 系统、研究工具和本地工程实践。</p>
-        <p>文章以证据为先，尽量说明事实边界、失败路径、修复方法和验证结果。</p>
-      </div>
+  <main class="shell">
+    <section class="intro" aria-label="站点说明">
+      <p class="intro-thesis">证据优先的工程笔记。</p>
+      <p>每篇都写清事实边界、失败路径、修复方法和验证结果，包括还不能下结论的部分。</p>
+      <p class="intro-topics">AI 系统 · 研究工具 · 本地工程实践</p>
     </section>
 
-    <section id="articles" class="post-list" aria-labelledby="articles-title">
-      <h2 id="articles-title" class="section-label">Technical Notes</h2>
-      <article class="post-card">
-        <time class="post-date" datetime="2026-07-30">2026-07-30</time>
-        <div>
-          <p class="kicker">macOS · Playwright · Incident review</p>
-          <h3><a href="./posts/macos-shutdown-playwright-chrome/">一次 macOS 无法关机排障：孤儿 Playwright/Chrome 进程与生命周期修复</a></h3>
-          <p>从注销日志、崩溃报告和 PPID 1 出发，区分“浏览器崩溃”与“仍在存活的关机阻塞进程”，再用可复现的故障注入验证修复。</p>
-        </div>
-      </article>
-    </section>
+    <h2 id="notes" class="section-label">全部笔记</h2>
+    <ol class="post-list">
+      <li class="post-item">
+        <h3><a href="./posts/macos-shutdown-playwright-chrome/">一次 macOS 无法关机排障：孤儿 Playwright/Chrome 进程与生命周期修复</a></h3>
+        <p class="post-meta">
+          <time datetime="2026-07-30">2026-07-30</time>
+          <span>10 分钟</span>
+          <span class="topic">macOS · Playwright · 事故复盘</span>
+        </p>
+      </li>
+    </ol>
   </main>
 
   <footer class="site-footer">
