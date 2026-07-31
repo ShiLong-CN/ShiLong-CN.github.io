@@ -1,11 +1,11 @@
 <!doctype html>
-<html lang="zh-CN" class="reading">
+<html lang="zh-CN">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>一次 macOS 无法关机排障：孤儿 Playwright/Chrome 进程与生命周期修复</title>
   <meta name="description" content="从注销日志、崩溃报告和进程树出发，定位阻塞 macOS 关机的孤儿 Playwright/Chrome 进程，并用有界关闭与故障注入完成修复。">
-  <meta name="theme-color" content="#ffffff">
+  <meta name="theme-color" content="#fdfdfd">
   <script>
     (() => {
       const root = document.documentElement;
@@ -17,10 +17,8 @@
       root.dataset.themeChoice = choice;
       if (choice === 'light' || choice === 'dark') root.dataset.theme = choice;
       const dark = choice === 'dark' || (choice === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
-      const reading = root.classList.contains('reading');
       root.style.colorScheme = dark ? 'dark' : 'light';
-      document.querySelector('meta[name="theme-color"]').content =
-        dark ? (reading ? '#0e1013' : '#15171a') : (reading ? '#ffffff' : '#f4f2ea');
+      document.querySelector('meta[name="theme-color"]').content = dark ? '#0f1113' : '#fdfdfd';
     })();
   </script>
   <link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml">
@@ -92,6 +90,19 @@
         </figure>
       </header>
 
+        <details class="toc">
+          <summary>本文目录</summary>
+          <ol>
+            <li><a href="#symptom">现象：关机卡住，Chrome 又频繁报错</a></li>
+            <li><a href="#chain">根因链：启动成功，不代表生命周期完整</a></li>
+            <li><a href="#cleanup">处置：只清理已证实的进程树</a></li>
+            <li><a href="#fix">永久修复：有界关闭、明确信号、零残留验收</a></li>
+            <li><a href="#limits">还不能下什么结论</a></li>
+            <li><a href="#checklist">下次遇到类似问题，我会先做这五步</a></li>
+            <li><a href="#references">参考资料</a></li>
+          </ol>
+        </details>
+
       <div class="article-body">
         <aside class="note" aria-label="结论摘要">
           <b class="note-label">结论先行</b>
@@ -104,10 +115,9 @@
           <div class="metric"><b>45</b><span>份数日内累计的 Chrome 系列崩溃报告</span></div>
         </div>
 
-        <div class="section-head">
-          <p class="rail-note"><b>依据</b>注销日志 · 诊断报告</p>
-          <h2 id="symptom">现象：关机卡住，Chrome 又频繁报错</h2>
-        </div>
+        <h2 id="symptom">现象：关机卡住，Chrome 又频繁报错</h2>
+
+        <p class="section-basis">依据：注销日志、诊断报告</p>
 
         <p>最初看到的表象很像“Chrome 崩溃导致 macOS 无法关机”：点击关机后系统迟迟不结束，同时系统里又留有多份 Chrome、Chrome for Testing 和无头 Chromium 的诊断报告。</p>
 
@@ -153,10 +163,9 @@
           关机阻塞窗口内没有新的 Chrome 崩溃。45 份报告说明存在相关稳定性症状；真正被注销日志直接点名的阻塞者，却是一个仍然活着的孤儿进程。报告文件的修改时间也不等于崩溃发生时间，至少有一份旧报告在两天后才被更新。
         </aside>
 
-        <div class="section-head">
-          <p class="rail-note"><b>依据</b>进程树 · 完整命令行</p>
-          <h2 id="chain">根因链：启动成功，不代表生命周期完整</h2>
-        </div>
+        <h2 id="chain">根因链：启动成功，不代表生命周期完整</h2>
+
+        <p class="section-basis">依据：进程树、完整命令行</p>
 
         <p>还原命令行与调用关系后，可以得到一条有证据支撑的故障链：</p>
 
@@ -172,19 +181,17 @@
 
         <p>另一个风险是把自动化指向日常使用的 Chrome。Playwright 官方文档也提醒：它与随包提供的浏览器配合最好，替换 <code>executablePath</code> 应当格外谨慎；自动化默认 Chrome profile 也不受支持。这个原则与本次事故的隔离需求一致。</p>
 
-        <div class="section-head">
-          <p class="rail-note"><b>结果</b>25 进程归零</p>
-          <h2 id="cleanup">处置：只清理已证实的进程树</h2>
-        </div>
+        <h2 id="cleanup">处置：只清理已证实的进程树</h2>
+
+        <p class="section-basis">结果：25 进程归零</p>
 
         <p>现场清理没有使用 <code>killall Chrome</code> 或模糊的 <code>pkill -f</code>。目标通过三项条件共同确认：自动化启动参数、Playwright 临时 profile、以及完整的父子进程树。先对 5 个主进程发送正常终止信号；确认它们没有退出后，才对这 5 棵已知进程树做定向强制终止。</p>
 
         <p>结果是 25 个相关进程全部消失，日常 Chrome 与正式 profile 未被修改。LaunchServices 不再保留对应的活跃登记，随后一次真实关机走过 <code>LogoutComplete</code> 并进入系统 shutdown 状态机；机器重启后也没有恢复这些残留进程。</p>
 
-        <div class="section-head">
-          <p class="rail-note"><b>依据</b>Playwright 官方 API</p>
-          <h2 id="fix">永久修复：有界关闭、明确信号、零残留验收</h2>
-        </div>
+        <h2 id="fix">永久修复：有界关闭、明确信号、零残留验收</h2>
+
+        <p class="section-basis">依据：Playwright 官方 API</p>
 
         <p>修复只落在 UI 测试的浏览器启动与关闭边界，没有改产品核心逻辑，也没有改依赖清单。测试辅助层采用 Playwright 管理的浏览器，并拒绝把配置指向日常 Google Chrome 应用。</p>
 
@@ -192,7 +199,9 @@
 
         <p>普通 <code>chromium.launch()</code> 返回浏览器对象；这里改用 <code>launchServer()</code>，同时持有 <code>BrowserServer</code> 与它的进程句柄。这样即使协议层关闭卡住，调用方仍可通过 Playwright 的公开 API 定向终止这一会话。</p>
 
-        <pre class="bleed" tabindex="0" aria-label="简化后的 Playwright 生命周期代码"><code>const server = await chromium.launchServer({
+        <div class="code-block">
+          <p class="code-label">简化后的 Playwright 生命周期边界</p>
+          <pre tabindex="0"><code>const server = await chromium.launchServer({
   headless: true,
   host: '127.0.0.1',
   handleSIGHUP: false,
@@ -212,6 +221,7 @@ try {
     await server.kill();
   }
 }</code></pre>
+        </div>
 
         <p>这段代码是公开文章用的简化版。实际实现还保证关闭操作幂等，并在连接失败时走同一条清理路径。<code>server.kill()</code> 只作用于当前 <code>BrowserServer</code>，不会按进程名误伤其他 Chrome。</p>
 
@@ -273,10 +283,9 @@ try {
           </table>
         </div>
 
-        <div class="section-head">
-          <p class="rail-note is-open"><b>状态</b>未证实</p>
-          <h2 id="limits">还不能下什么结论</h2>
-        </div>
+        <h2 id="limits">还不能下什么结论</h2>
+
+        <p class="section-basis is-open">状态：未证实</p>
 
         <p>这次证据足以确认“哪个进程直接挡住了关机”以及“生命周期修复能否避免残留”，但仍不足以把底层责任归给某一个组件：</p>
 
@@ -289,10 +298,9 @@ try {
 
         <p>修复范围只覆盖涉事本地项目的 UI 测试辅助层；它不代表上游 Playwright 或所有其他自动化调用方已经修复。</p>
 
-        <div class="section-head">
-          <p class="rail-note"><b>产出</b>排查清单</p>
-          <h2 id="checklist">下次遇到类似问题，我会先做这五步</h2>
-        </div>
+        <h2 id="checklist">下次遇到类似问题，我会先做这五步</h2>
+
+        <p class="section-basis">产出：排查清单</p>
 
         <ol>
           <li><strong>先看注销日志。</strong>确认系统在等待哪个应用，而不是根据弹窗猜根因。</li>
@@ -304,10 +312,9 @@ try {
 
         <p>最重要的工程教训很简单：<strong>自动化任务的“完成”必须包括它启动的外部进程已经被回收。</strong>只要浏览器生命周期仍是无限等待，测试断言全部通过也不能算真正结束。</p>
 
-        <div class="section-head">
-          <p class="rail-note"><b>来源</b>playwright.dev</p>
-          <h2 id="references">参考资料</h2>
-        </div>
+        <h2 id="references">参考资料</h2>
+
+        <p class="section-basis">来源：playwright.dev</p>
 
         <ul>
           <li><a href="https://playwright.dev/docs/api/class-browsertype">Playwright BrowserType API</a>：浏览器启动、连接、信号与 executablePath 的官方说明。</li>

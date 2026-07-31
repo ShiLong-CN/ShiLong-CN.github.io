@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>404 · 页面不存在 — ShiLong Li</title>
   <meta name="description" content="这页笔记不存在，回到首页继续阅读。">
-  <meta name="theme-color" content="#f4f2ea">
+  <meta name="theme-color" content="#fdfdfd">
   <meta name="robots" content="noindex">
   <script>
     (() => {
@@ -18,10 +18,8 @@
       root.dataset.themeChoice = choice;
       if (choice === 'light' || choice === 'dark') root.dataset.theme = choice;
       const dark = choice === 'dark' || (choice === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
-      const reading = root.classList.contains('reading');
       root.style.colorScheme = dark ? 'dark' : 'light';
-      document.querySelector('meta[name="theme-color"]').content =
-        dark ? (reading ? '#0e1013' : '#15171a') : (reading ? '#ffffff' : '#f4f2ea');
+      document.querySelector('meta[name="theme-color"]').content = dark ? '#0f1113' : '#fdfdfd';
     })();
   </script>
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">

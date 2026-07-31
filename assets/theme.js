@@ -23,11 +23,8 @@
     }
 
     const effective = effectiveTheme();
-    const reading = root.classList.contains('reading');
     root.style.colorScheme = effective;
-    themeColor.content = effective === 'dark'
-      ? (reading ? '#0e1013' : '#15171a')
-      : (reading ? '#ffffff' : '#f4f2ea');
+    themeColor.content = effective === 'dark' ? '#0f1113' : '#fdfdfd';
     controls.forEach((control) => {
       control.setAttribute('aria-pressed', String(control.dataset.themeValue === choice));
     });
