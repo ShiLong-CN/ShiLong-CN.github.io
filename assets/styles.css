@@ -17,8 +17,10 @@
   --ember: #c0410c;
   --selection: #dbe6f3;
 
-  --measure: 730px;
-  --bleed: 900px;
+  /* The frame is wide; only running prose is capped, because a 1200px line of
+     17px Chinese is ~70 characters and the eye loses its place returning. */
+  --frame: 1200px;
+  --measure: 820px;
 
   --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
     "Hiragino Sans GB", "Microsoft YaHei", Roboto, "Helvetica Neue", Arial,
@@ -130,7 +132,7 @@ a:hover {
 .site-footer,
 .shell,
 .article-shell {
-  width: min(calc(100% - 40px), var(--measure));
+  width: min(calc(100% - 48px), var(--frame));
   margin-right: auto;
   margin-left: auto;
 }
@@ -221,6 +223,10 @@ a:hover {
 .intro {
   padding: 40px 0 34px;
   border-bottom: 1px solid var(--rule);
+}
+
+.intro > * {
+  max-width: var(--measure);
 }
 
 .intro p {
@@ -326,6 +332,7 @@ a:hover {
 }
 
 .article-header h1 {
+  max-width: 20em;
   margin: 14px 0 0;
   color: var(--ink);
   font-size: clamp(27px, 3.6vw, 37px);
@@ -335,6 +342,7 @@ a:hover {
 }
 
 .article-deck {
+  max-width: var(--measure);
   margin: 16px 0 0;
   color: var(--ink-2);
   font-size: 18px;
@@ -356,7 +364,9 @@ a:hover {
   margin: 0 8px;
 }
 
+/* Capped to the reading measure: at frame width the 16:9 hero eats the fold. */
 .article-figure {
+  max-width: var(--measure);
   margin: 32px 0 0;
 }
 
@@ -389,6 +399,7 @@ a:hover {
 /* --- table of contents -------------------------------------------------- */
 
 .toc {
+  max-width: var(--measure);
   margin: 34px 0 0;
   padding: 14px 18px;
   border: 1px solid var(--rule);
@@ -439,10 +450,16 @@ a:hover {
 
 /* --- article body ------------------------------------------------------- */
 
+/* Everything in the body is capped at the reading measure; the wide blocks
+   opt back out to the full frame. */
 .article-body {
   margin-top: 40px;
   font-size: 17px;
-  line-height: 1.75;
+  line-height: 1.8;
+}
+
+.article-body > * {
+  max-width: var(--measure);
 }
 
 .article-body p,
@@ -562,10 +579,8 @@ code {
 }
 
 .article-body > .bleed,
-.code-block {
-  width: min(var(--bleed), calc(100vw - 40px));
-  margin-left: 50%;
-  transform: translateX(-50%);
+.article-body > .code-block {
+  max-width: none;
 }
 
 .code-block {
@@ -683,6 +698,13 @@ thead th {
     font-size: 15.5px;
   }
 
+  .site-header,
+  .site-footer,
+  .shell,
+  .article-shell {
+    width: calc(100% - 36px);
+  }
+
   .header-actions {
     width: 100%;
     justify-content: space-between;
@@ -742,16 +764,10 @@ thead th {
   }
 
   .article-shell,
-  .article-body {
+  .article-body,
+  .article-body > * {
     width: 100%;
     max-width: none;
-  }
-
-  .article-body > .bleed,
-  .code-block {
-    width: 100%;
-    margin-left: 0;
-    transform: none;
   }
 
   body {
